@@ -4,6 +4,7 @@ import 'firebase/compat/auth';
 import 'firebase/compat/database'; // Import Realtime Database instead of Firestore
 import 'firebase/compat/storage'; // Import Firebase Storage
 
+
 // firebaseConfig.js
 export const firebaseConfig = {
   apiKey: "AIzaSyBG2St4s8g1UZC3p9r16S5kzDoLjkB7X5k",

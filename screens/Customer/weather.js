@@ -100,7 +100,7 @@ const WeatherModal = ({ affiliateId }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", left: 130,  },
+  container: { alignItems: "center",  },
   weatherButton: { backgroundColor: "#007AFF", padding: 8, borderRadius: 6, alignItems: "center", justifyContent: "center", width: 90 },
   weatherButtonText: { color: "white", fontSize: 12, fontWeight: "bold" },
   modalBackground: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },

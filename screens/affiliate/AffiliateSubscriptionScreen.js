@@ -224,19 +224,19 @@ const AffiliateSubscriptionScreen = () => {
     setIsSaving(true);
     try {
       const currentUser = firebase.auth().currentUser;
-
+  
       if (currentUser) {
         const affiliateId = currentUser.uid;
-
+  
         const adminsSnapshot = await firebase
           .database()
           .ref("admins")
           .once("value");
         const adminsData = adminsSnapshot.val();
         const adminId = Object.keys(adminsData)[0];
-
+  
         const subscriptionRef = firebase.database().ref("subscription").push();
-
+  
         await subscriptionRef.set({
           affiliateId,
           adminId,
@@ -247,26 +247,26 @@ const AffiliateSubscriptionScreen = () => {
           status: "pending",
           timestamp: firebase.database.ServerValue.TIMESTAMP,
         });
-
-        await firebase.database().ref("billReminders").remove();
-
+  
+        await firebase.database().ref(`nosubscription/${affiliateId}`).remove();
+  
         setReminder("");
-
+  
         const logMessage = `Subscription Sent: Reference Number - ${referenceNumber}, Amount Paid - ${amountPaid}`;
         console.log(logMessage);
-
+  
         const logsRef = firebase.database().ref(`logs/${affiliateId}`);
         const newLogRef = logsRef.push();
         newLogRef.set({
           message: logMessage,
           timestamp: firebase.database.ServerValue.TIMESTAMP,
         });
-
+  
         Alert.alert(
           "Subscription Sent!",
           "Subscription sent successfully. Please wait for approval from the admin.",
         );
-
+  
         setReferenceNumber("");
         setAmountPaid("");
       } else {

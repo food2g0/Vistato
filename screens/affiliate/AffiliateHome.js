@@ -1,10 +1,12 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, Alert } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import firebase from "../../firebase";
 import HomeScreen from "./HomeScreen";
 import BookingScreen from "./BookingScreen";
 import FacilityScreen from "./FacilityScreen";
 import ProfileScreen from "./ProfileScreen";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 const Tab = createBottomTabNavigator();
 
@@ -82,7 +84,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           >
             <CustomTabBarIcon
               route={route}
-              color={isFocused ? "#088B9C" : "gray"}
+              color={isFocused ? "#283618" : "#606c38"}
               size={24}
             />
           </TouchableOpacity>
@@ -92,33 +94,93 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   );
 };
 
-const AffiliateHome = () => (
-  <Tab.Navigator
-    tabBar={(props) => <CustomTabBar {...props} />}
-    initialRouteName="Home"
-  >
-    <Tab.Screen
-      name="Home"
-      component={HomeScreen}
-      options={{ headerShown: false }}
-    />
-    <Tab.Screen
-      name="Bookings"
-      component={BookingScreen}
-      options={{ headerShown: false }}
-    />
-    <Tab.Screen
-      name="Facilities"
-      component={FacilityScreen}
-      options={{ headerShown: false }}
-    />
-    <Tab.Screen
-      name="Profile"
-      component={ProfileScreen}
-      options={{ headerShown: false }}
-    />
-  </Tab.Navigator>
-);
+const AffiliateHome = () => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const navigation = useNavigation();
+
+  const checkSubscriptionStatus = useCallback(() => {
+    const user = firebase.auth().currentUser;
+    if (user) {
+      const nosubscriptionRef = firebase.database().ref(`nosubscription/${user.uid}`);
+      const subscriptionListener = nosubscriptionRef.on('value', (snapshot) => {
+        if (snapshot.exists()) {
+          setIsModalVisible(true);
+        } else {
+          setIsModalVisible(false);
+        }
+      });
+
+      return () => {
+        nosubscriptionRef.off('value', subscriptionListener);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, [checkSubscriptionStatus]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkSubscriptionStatus();
+    }, [checkSubscriptionStatus])
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        tabBar={(props) => <CustomTabBar {...props} />}
+        initialRouteName="Home"
+      >
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Bookings"
+          component={BookingScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Facilities"
+          component={FacilityScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{ headerShown: false }}
+        />
+      </Tab.Navigator>
+
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          Alert.alert("Subscription Required", "You need to subscribe first.");
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Subscription Required</Text>
+            <Text style={styles.modalMessage}>You need to subscribe first to access this content.</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setIsModalVisible(false);
+                navigation.navigate("AffiliateSubscription");
+              }}
+            >
+              <Text style={styles.modalButtonText}>Subscribe Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   tabBarIconContainer: {
@@ -129,16 +191,51 @@ const styles = StyleSheet.create({
   },
   tabBarContainer: {
     flexDirection: "row",
-    backgroundColor: "white",
+    backgroundColor: "#fefae0",
     paddingTop: 10,
     paddingBottom: 20,
     justifyContent: "space-around",
-    borderTopColor: "#f1f1f1",
+    borderTopColor: "#dda15e",
     borderTopWidth: 1,
   },
   tabBarItem: {
     flex: 1,
     alignItems: "center",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: "#fefae0",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#606c38",
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#606c38",
+  },
+  modalButton: {
+    backgroundColor: "#dda15e",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  modalButtonText: {
+    color: "#fefae0",
+    fontSize: 16,
   },
 });
 

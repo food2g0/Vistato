@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Image,
   Modal,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -40,7 +41,9 @@ const SubscriptionScreen = () => {
         const subscriptionData = subscriptionSnapshot.val();
 
         if (subscriptionData) {
-          const paymentDetailsArray = Object.values(subscriptionData);
+          const paymentDetailsArray = Object.entries(subscriptionData).map(
+            ([id, payment]) => ({ id, ...payment })
+          );
           const promises = paymentDetailsArray.map(async (payment) => {
             const affiliateSnapshot = await firebase
               .database()
@@ -115,6 +118,29 @@ const SubscriptionScreen = () => {
 
   const capitalizeFirstLetter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  const handleAcceptSubscription = async () => {
+    if (selectedPayment) {
+      try {
+        const { id, affiliateId } = selectedPayment;
+
+        // Update the subscription status to "accepted"
+        await firebase
+          .database()
+          .ref(`subscription/${id}`)
+          .update({ status: "accepted" });
+
+        // Remove the user from the nosubscription collection
+        await firebase.database().ref(`nosubscription/${affiliateId}`).remove();
+
+        Alert.alert("Success", "Subscription accepted successfully.");
+        closeModal();
+      } catch (error) {
+        console.error("Error accepting subscription:", error);
+        Alert.alert("Error", "Failed to accept subscription. Please try again.");
+      }
+    }
   };
 
   return (
@@ -235,6 +261,12 @@ const SubscriptionScreen = () => {
                   </Text>
                 </View>
               </View>
+              <TouchableOpacity
+                style={styles.acceptButton}
+                onPress={handleAcceptSubscription}
+              >
+                <Text style={styles.acceptButtonText}>Accept</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -366,6 +398,18 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
+  },
+  acceptButton: {
+    backgroundColor: "#088B9C",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  acceptButtonText: {
+    color: "white",
+    fontSize: 16,
   },
 });
 

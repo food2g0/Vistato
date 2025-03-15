@@ -19,7 +19,7 @@ import BookingModal from "./BookingModal.js";
 
 const CustomHeader = ({ title, onAddPress }) => (
   <SafeAreaView style={styles.safeArea}>
-    <StatusBar barStyle="dark-content" backgroundColor={"white"} />
+    <StatusBar barStyle="dark-content" backgroundColor="#606c38" />
     <View style={styles.header}>
       <Text style={styles.title}>{title}</Text>
     </View>

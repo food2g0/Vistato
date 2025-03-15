@@ -18,7 +18,6 @@ import firebase from "../../firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 
-
 const HomeScreen = () => {
   const [affiliateAccounts, setAffiliateAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,25 +46,36 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    const dbRef = firebase.database().ref("affiliates");
+    const affiliatesRef = firebase.database().ref("affiliates");
+    const nosubscriptionRef = firebase.database().ref("nosubscription");
 
-    const handleAffiliateDataChange = (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const affiliatesArray = Object.entries(data).map(([key, value]) => ({
-          ...value,
-          id: key,
-          key: key,
-        }));
+    const handleAffiliatesChange = (snapshot) => {
+      const affiliatesData = snapshot.val();
+      if (affiliatesData) {
+        const affiliatesArray = Object.entries(affiliatesData).map(
+          ([key, value]) => ({
+            ...value,
+            id: key,
+            key: key,
+          })
+        );
         setAffiliateAccounts(affiliatesArray);
       }
-      setLoading(false);
     };
 
-    dbRef.on("value", handleAffiliateDataChange);
+    const handleNosubscriptionChange = (snapshot) => {
+      const nosubscriptionData = snapshot.val() || {};
+      setAffiliateAccounts((prevAffiliates) =>
+        prevAffiliates.filter((affiliate) => !nosubscriptionData[affiliate.id])
+      );
+    };
+
+    affiliatesRef.on("value", handleAffiliatesChange);
+    nosubscriptionRef.on("value", handleNosubscriptionChange);
 
     return () => {
-      dbRef.off("value", handleAffiliateDataChange);
+      affiliatesRef.off("value", handleAffiliatesChange);
+      nosubscriptionRef.off("value", handleNosubscriptionChange);
     };
   }, []);
 
@@ -571,7 +581,6 @@ const HomeScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

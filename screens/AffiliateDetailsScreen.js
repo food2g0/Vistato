@@ -15,8 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 import firebase from "../firebase.js";
 import { getDatabase, ref as dbRef, get } from "firebase/database";
-import  WeatherModal  from "./Customer/weather.js"; 
-
+import WeatherModal from "./Customer/weather.js";
 
 const CustomHeader = ({ title, navigation }) => (
   <View style={styles.header}>
@@ -30,8 +29,6 @@ const CustomHeader = ({ title, navigation }) => (
     <Text style={styles.title}>{title}</Text>
   </View>
 );
-
-
 
 const ProfileContainer = ({ affiliate, handleAddressPress, handleView360, navigation }) => (
   <View style={styles.profileContainer}>
@@ -50,22 +47,20 @@ const ProfileContainer = ({ affiliate, handleAddressPress, handleView360, naviga
       />
       <View style={styles.usernameContainer}>
         <Text style={styles.usernameText}>{affiliate.username}</Text>
-        
-        {/* ✅ Now navigation is correctly passed */}
-        <TouchableOpacity onPress={() => navigation.navigate("ChatScreen", { affiliate })}>
-          <Ionicons name="chatbubble-ellipses-outline" size={30} color="black" />
-        </TouchableOpacity>
-
+        <TouchableOpacity onPress={() => navigation.navigate("ChatScreen", { affiliate })} style={styles.chatIcon}>
+  <Ionicons name="chatbubble-ellipses-outline" size={30} color="black" />
+</TouchableOpacity>
+      </View>
+      <View style={styles.iconContainer}>
+    
         <TouchableOpacity
           style={styles.view360Button}
           onPress={() => handleView360(affiliate)}
         >
           <Text style={styles.view360ButtonText}>View 360°</Text>
         </TouchableOpacity>
+        <WeatherModal affiliateId={affiliate.affiliateId} />
       </View>
-
-      <WeatherModal affiliateId={affiliate.affiliateId} />
-
       <TouchableOpacity onPress={handleAddressPress} style={styles.addressContainer}>
         <View style={styles.dataContainer}>
           <Ionicons name="location" size={20} color="#088B9C" style={styles.icon} />
@@ -77,8 +72,6 @@ const ProfileContainer = ({ affiliate, handleAddressPress, handleView360, naviga
     </View>
   </View>
 );
-
-
 
 const AffiliateDetailsScreenContent = ({ route, navigation }) => {
   const { affiliate, selectedFacilityId } = route.params;
@@ -161,7 +154,6 @@ const AffiliateDetailsScreenContent = ({ route, navigation }) => {
     });
   };
 
-
   const handleView360 = async () => {
     if (!affiliate.affiliateId) {
       Alert.alert("Error", "Affiliate ID is missing.");
@@ -192,7 +184,7 @@ const AffiliateDetailsScreenContent = ({ route, navigation }) => {
       Alert.alert("Error", "Failed to retrieve 360° images.");
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.screen}>
       <CustomHeader title={affiliate.username} navigation={navigation} />
@@ -202,13 +194,12 @@ const AffiliateDetailsScreenContent = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={true}
       >
-     <ProfileContainer
-  affiliate={affiliate}
-  handleAddressPress={handleAddressPress}
-  handleView360={handleView360}
-  navigation={navigation} // ✅ Pass navigation here
-/>
-
+        <ProfileContainer
+          affiliate={affiliate}
+          handleAddressPress={handleAddressPress}
+          handleView360={handleView360}
+          navigation={navigation} // ✅ Pass navigation here
+        />
 
         <View style={styles.descriptionContainer}>
           <Text style={styles.descriptionTitle}>About</Text>
@@ -380,29 +371,39 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
-  usernameContainer: {
+ // ...existing code...
+usernameContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  marginTop: 10,
+},
+chatIcon: {
+  marginLeft: 20, // Added margin to position the chat icon
+},
+// ...existing code...
+  iconContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     width: "90%",
-    marginTop: 10,
+    marginTop: 20,
+    marginBottom: 20,
     left: 15,
   },
+  
   view360Button: {
     backgroundColor: "#088B9C",
     paddingVertical: 6,
     paddingHorizontal: 15,
     borderRadius: 5,
-    marginLeft: 30,
-    position: "relative",
+    marginLeft: 10,
   },
   view360ButtonText: {
     color: "white",
     fontSize: 14,
     fontWeight: "bold",
   },
-  
-  
   descriptionText: {
     fontSize: 15,
     textAlign: "justify",
