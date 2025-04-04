@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+
 import firebase from "../../firebase.js";
 
 const EditProfileScreen = () => {
@@ -34,15 +35,18 @@ const EditProfileScreen = () => {
   const [longitude, setLongitude] = useState("");
   const [originalLongitude, setOriginalLongitude] = useState("");
   const [profilePictureUri, setProfilePictureUri] = useState("");
-  const [originalProfilePictureUri, setOriginalProfilePictureUri] = useState("");
+  const [originalProfilePictureUri, setOriginalProfilePictureUri] =
+    useState("");
   const [accountDescription, setAccountDescription] = useState("");
-  const [originalAccountDescription, setOriginalAccountDescription] = useState("");
+  const [originalAccountDescription, setOriginalAccountDescription] =
+    useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
 
-  // Fetch affiliate data from Firebase
   const fetchAffiliateData = async () => {
     const user = firebase.auth().currentUser;
+
+    console.log("User object in fetchAffiliateData:", user);
 
     if (user) {
       try {
@@ -50,6 +54,10 @@ const EditProfileScreen = () => {
           .database()
           .ref(`affiliates/${user.uid}`)
           .once("value");
+        console.log(
+          "Affiliate snapshot in fetchAffiliateData:",
+          affiliateSnapshot.val(),
+        );
 
         const affiliateData = affiliateSnapshot.val();
 
@@ -81,6 +89,8 @@ const EditProfileScreen = () => {
 
   useEffect(() => {
     const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+      console.log("onAuthStateChanged - User:", user);
+
       if (user) {
         fetchAffiliateData();
       } else {
@@ -91,7 +101,6 @@ const EditProfileScreen = () => {
     return unsubscribe;
   }, []);
 
-  // Handle saving changes to the user's profile
   const handleSaveChanges = async () => {
     const user = firebase.auth().currentUser;
 
@@ -99,12 +108,25 @@ const EditProfileScreen = () => {
       try {
         setIsLoading(true);
 
-        let uploadedDownloadURL = originalProfilePictureUri;
-        if (profilePictureUri && profilePictureUri !== originalProfilePictureUri) {
-          uploadedDownloadURL = await uploadProfilePicture(profilePictureUri, user);
+        const uploadedDownloadURL = await uploadProfilePicture(
+          profilePictureUri,
+          user,
+        );
+
+        if (profilePictureUri) {
+          const downloadURL = await uploadProfilePicture(
+            profilePictureUri,
+            user,
+          );
+
+          await firebase
+            .database()
+            .ref(`affiliates/${user.uid}`)
+            .update({
+              profilePicture: uploadedDownloadURL || "",
+            });
         }
 
-        // Update user profile data in Firebase
         await firebase
           .database()
           .ref(`affiliates/${user.uid}`)
@@ -115,8 +137,8 @@ const EditProfileScreen = () => {
             address,
             latitude,
             longitude,
-            accountDescription: accountDescription || originalAccountDescription,
-            profilePicture: uploadedDownloadURL || "",
+            accountDescription:
+              accountDescription || originalAccountDescription,
           });
 
         setIsLoading(false);
@@ -126,16 +148,18 @@ const EditProfileScreen = () => {
         ]);
       } catch (error) {
         console.error("Error updating profile:", error);
-        setIsLoading(false);
+
         Alert.alert("Error", "Failed to update profile. Please try again.", [
           { text: "OK" },
         ]);
+        setIsLoading(false);
       }
     }
   };
 
-  // Upload profile picture to Firebase Storage
   const uploadProfilePicture = async (uri, user) => {
+    console.log("User object in uploadProfilePicture:", user);
+
     if (!user || !user.uid) {
       console.error("User object or UID is undefined");
       return;
@@ -143,14 +167,22 @@ const EditProfileScreen = () => {
 
     try {
       const response = await fetch(uri);
-      if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
 
+      if (!response.ok) {
+        throw new Error(
+          `Network response was not ok. Status: ${response.status}`,
+        );
+      }
       const blob = await response.blob();
+
       const storageRef = firebase.storage().ref();
-      const profilePictureRef = storageRef.child(`profilePictures/${user.uid}.jpg`);
+      const profilePictureRef = storageRef.child(
+        `profilePictures/${user.uid}.jpg`,
+      );
 
       await profilePictureRef.put(blob);
       const downloadURL = await profilePictureRef.getDownloadURL();
+
       return downloadURL;
     } catch (error) {
       console.error("Error uploading profile picture:", error);
@@ -158,14 +190,13 @@ const EditProfileScreen = () => {
     }
   };
 
-  // Cancel the edit process and go back
   const handleCancel = () => {
     navigation.goBack();
   };
 
-  // Pick a new profile picture using ImagePicker
   const handlePickProfilePicture = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
       alert("Permission to access camera roll is required!");
@@ -183,25 +214,37 @@ const EditProfileScreen = () => {
           quality: 1,
         });
 
+        console.log("ImagePicker result:", result);
+
         if (result.cancelled) {
+          console.log("Image picking cancelled");
           return;
         }
 
-        const { uri } = result.assets[0];
+        const { uri, height, width, type } = result.assets[0];
+
+        if (!uri || uri === "") {
+          throw new Error("Image URI is undefined or empty");
+        }
+
+        console.log("Selected image info:", { uri, height, width, type });
         setIsLoading(true);
+
         const downloadURL = await uploadProfilePicture(uri, user);
+
+        console.log("Download URL:", downloadURL);
+
         setProfilePictureUri(downloadURL || uri);
         setIsLoading(false);
       } catch (error) {
+        // console.error('Error picking profile picture:', error);
         setIsLoading(false);
-        console.error("Error picking profile picture:", error);
       }
     } else {
       console.error("User object is undefined");
     }
   };
 
-  // Check if any data has changed
   const checkIsChanged = () => {
     return (
       username !== originalUsername ||
@@ -211,7 +254,9 @@ const EditProfileScreen = () => {
       latitude !== originalLatitude ||
       longitude !== originalLongitude ||
       accountDescription !== originalAccountDescription ||
-      (profilePictureUri !== originalProfilePictureUri)
+      (profilePictureUri !== "" &&
+        profilePictureUri !== originalProfilePictureUri) ||
+      (profilePictureUri === "" && originalProfilePictureUri !== "")
     );
   };
 
@@ -225,14 +270,30 @@ const EditProfileScreen = () => {
           <Text style={styles.headerTitle}>Edit Profile</Text>
         </View>
         <TouchableOpacity
-          onPress={handleSaveChanges}
-          style={[styles.headerSaveButton, { opacity: checkIsChanged() ? 1 : 0.5 }]}
+          onPress={() => {
+            if (checkIsChanged()) {
+              handleSaveChanges();
+            }
+          }}
+          style={[
+            styles.headerSaveButton,
+            { opacity: checkIsChanged() ? 1 : 0.5 },
+          ]}
           disabled={!checkIsChanged()}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#088b9c" />
+            <ActivityIndicator
+              size="small"
+              color="#088b9c"
+              style={{ marginRight: 12 }}
+            />
           ) : (
-            <Text style={[styles.headerSaveButtonText, { color: checkIsChanged() ? "#088b9c" : "#bdc3c7" }]}>
+            <Text
+              style={[
+                styles.headerSaveButtonText,
+                { color: checkIsChanged() ? "#088b9c" : "#bdc3c7" },
+              ]}
+            >
               Save
             </Text>
           )}
@@ -244,81 +305,112 @@ const EditProfileScreen = () => {
           <ActivityIndicator size="large" color="#088b9c" />
         </View>
       ) : (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={true}
+            showsHorizontalScrollIndicator={true}
+          >
             <View style={styles.profilePictureContainer}>
               <Image
-                source={profilePictureUri ? { uri: profilePictureUri } : require("../../assets/profile-picture.jpg")}
+                source={
+                  profilePictureUri
+                    ? { uri: profilePictureUri }
+                    : require("../../assets/profile-picture.jpg")
+                }
                 style={styles.profilePicture}
               />
-              <TouchableOpacity style={styles.changePictureButton} onPress={handlePickProfilePicture}>
-                <Text style={styles.changePictureButtonText}>Change Picture</Text>
+              <TouchableOpacity
+                style={styles.changePictureButton}
+                onPress={handlePickProfilePicture}
+              >
+                <Text style={styles.changePictureButtonText}>
+                  Change Picture
+                </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.contentContainer}>
               <View style={styles.formContainer}>
+                <View style={styles.multilineInputContainer}>
+                  <Text style={styles.placeholder}>Account Description</Text>
+                  <TextInput
+                    style={[styles.input, styles.multilineInput]}
+                    placeholder="Enter your account description"
+                    multiline={true}
+                    textAlignVertical="top"
+                    value={accountDescription}
+                    onChangeText={(text) => setAccountDescription(text)}
+                  />
+                </View>
+
+                <View style={styles.separator}></View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.placeholder}>Username</Text>
                   <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    style={styles.input}
+                    style={[styles.input, styles.inputBackground]}
                     placeholder="Enter your username"
+                    value={username}
+                    onChangeText={(text) => setUsername(text)}
                   />
                 </View>
+
                 <View style={styles.inputContainer}>
-                  <Text style={styles.placeholder}>Email</Text>
+                  <Text style={styles.placeholder}>Email Address</Text>
                   <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    style={styles.input}
+                    style={[styles.input, styles.inputBackground]}
                     placeholder="Enter your email"
+                    value={email}
+                    onChangeText={(text) => setEmail(text)}
+                    editable={false}
                   />
                 </View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.placeholder}>Contact No.</Text>
                   <TextInput
-                    value={contactNo}
-                    onChangeText={setContactNo}
-                    style={styles.input}
+                    style={[styles.input, styles.inputBackground]}
                     placeholder="Enter your contact number"
+                    value={contactNo}
+                    onChangeText={(text) => setContactNo(text)}
+                    keyboardType="numeric"
+                    maxLength={11}
                   />
                 </View>
+
+                <View style={styles.separator}></View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.placeholder}>Address</Text>
                   <TextInput
-                    value={address}
-                    onChangeText={setAddress}
-                    style={styles.input}
+                    style={[styles.input, styles.inputBackground]}
                     placeholder="Enter your address"
+                    value={address}
+                    onChangeText={(text) => setAddress(text)}
                   />
                 </View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.placeholder}>Latitude</Text>
                   <TextInput
+                    style={[styles.input, styles.inputBackground]}
+                    placeholder="Enter Latitude (° N)"
                     value={latitude}
-                    onChangeText={setLatitude}
-                    style={styles.input}
-                    placeholder="Enter your latitude"
+                    onChangeText={(text) => setLatitude(text)}
                   />
                 </View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.placeholder}>Longitude</Text>
                   <TextInput
+                    style={[styles.input, styles.inputBackground]}
+                    placeholder="Enter Longitude (° E)"
                     value={longitude}
-                    onChangeText={setLongitude}
-                    style={styles.input}
-                    placeholder="Enter your longitude"
-                  />
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.placeholder}>Account Description</Text>
-                  <TextInput
-                    value={accountDescription}
-                    onChangeText={setAccountDescription}
-                    style={styles.input}
-                    placeholder="Enter your account description"
+                    onChangeText={(text) => setLongitude(text)}
                   />
                 </View>
               </View>
@@ -329,7 +421,6 @@ const EditProfileScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -419,8 +510,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   input: {
-    flex: 1,
+    
     fontSize: 15,
+    color: "black", // Ensure the text color is visible
+    padding: 10, // Add padding for better visibility
   },
   separator: {
     borderBottomColor: "#ddd",
@@ -441,6 +534,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderColor: "#b3b3b3",
     borderWidth: 1,
+    color: "black", // Ensure the text color is visible
   },
 });
 

@@ -421,13 +421,15 @@ const styles = StyleSheet.create({
   inputBackground: {
     backgroundColor: "white",
     borderRadius: 20,
-    padding: 25,
+    paddingLeft: 15,
     borderColor: "#b3b3b3",
     borderWidth: 1,
   },
   input: {
-    flex: 1,
-    fontSize: 15,
+
+    fontSize: 16, // Increase font size for better visibility
+    color: "black", // Ensure the text color is visible
+    padding: 15, // Add padding for better visibility
   },
 });
 
