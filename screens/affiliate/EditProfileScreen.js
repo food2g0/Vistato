@@ -512,8 +512,8 @@ const styles = StyleSheet.create({
   input: {
     
     fontSize: 15,
-    color: "black", // Ensure the text color is visible
-    padding: 10, // Add padding for better visibility
+    color: "black",
+    padding: 10,
   },
   separator: {
     borderBottomColor: "#ddd",

@@ -92,7 +92,7 @@ const AmenityBookingScreen = ({ route, navigation }) => {
     if (!user) {
       Alert.alert(
         "Login Required",
-        "You need to sign in to add this facility to favorites.",
+        "You need to sign in to add this facility to mne.",
         [{ text: "OK" }],
         { cancelable: false },
       );
@@ -376,6 +376,15 @@ const AmenityBookingScreen = ({ route, navigation }) => {
 
   const handleBooking = () => {
     const user = firebase.auth().currentUser;
+    if (!user) {
+      Alert.alert(
+        "Login Required",
+        "You need to sign in to add this facility to favorites.",
+        [{ text: "OK" }],
+        { cancelable: false },
+      );
+      return;
+    }
   
     if (!user) {
       if (!username) {

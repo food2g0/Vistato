@@ -249,6 +249,7 @@ const AffiliateSubscriptionScreen = () => {
         });
   
         await firebase.database().ref(`nosubscription/${affiliateId}`).remove();
+        await firebase.database().ref(`billReminders/${affiliateId}`).remove();
   
         setReminder("");
   

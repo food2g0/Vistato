@@ -31,6 +31,7 @@ const FacilityBookingScreen = ({ route, navigation }) => {
   const [isCheckOutPickerVisible, setCheckOutPickerVisible] = useState(false);
   const [checkOutDate, setCheckOutDate] = useState(null);
   const [adultGuests, setAdultGuests] = useState(0);
+  const maxGuests = 5; 
   const [childGuests, setChildGuests] = useState(0);
   const [tourTime, setTourTime] = useState("dayTourTime");
   const facilityId = selectedFacility.id;
@@ -47,6 +48,28 @@ const FacilityBookingScreen = ({ route, navigation }) => {
     referenceNumber: "",
     amountPaid: "",
   });
+  const handleIncrement = () => {
+    if (adultGuests < maxGuests) {
+      setAdultGuests((prev) => prev + 1);
+    }
+  };
+
+  const handleDecrement = () => {
+    if (adultGuests > 0) {
+      setAdultGuests((prev) => prev - 1);
+    }
+  };
+  const handleIncrementChild = () => {
+    if (childGuests < maxGuests) {
+      setChildGuests((prev) => prev + 1);
+    }
+  };
+
+  const handleDecrementChild = () => {
+    if (childGuests > 0) {
+      setChildGuests((prev) => prev - 1);
+    }
+  };
 
   useEffect(() => {
     const user = firebase.auth().currentUser;
@@ -377,6 +400,15 @@ const FacilityBookingScreen = ({ route, navigation }) => {
   const handleBooking = () => {
     const user = firebase.auth().currentUser;
     
+    if (!user) {
+      Alert.alert(
+        "Login Required",
+        "You need to sign in to Book.",
+        [{ text: "OK" }],
+        { cancelable: false },
+      );
+      return;
+    }
   
     if (!user) {
       if (!username) {
@@ -690,7 +722,7 @@ const FacilityBookingScreen = ({ route, navigation }) => {
                       source={
                         review.customerData.profilePicture
                           ? { uri: review.customerData.profilePicture }
-                          : require("./../../assets/profile-picture.jpg")
+                          : require("../../assets/profile-picture.png")
                       }
                       style={styles.profilePicture}
                     />
@@ -965,29 +997,50 @@ const FacilityBookingScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.guestsContainer}>
-              <Text style={[styles.inputLabel, styles.guestsLabel]}>
-                Adult Guests:
-              </Text>
-              <TextInput
-                style={[styles.input, styles.guestsInput]}
-                value={adultGuests.toString()}
-                onChangeText={handleAdultGuestChange}
-                keyboardType="numeric"
-                placeholder="Number of Adults"
-              />
-            </View>
-            <View style={styles.guestsContainer}>
-              <Text style={[styles.inputLabel, styles.guestsLabel]}>
-                Children Guests:
-              </Text>
-              <TextInput
-                style={[styles.input, styles.guestsInput]}
-                value={childGuests.toString()}
-                onChangeText={handleChildGuestChange}
-                keyboardType="numeric"
-                placeholder="Number of Children"
-              />
-            </View>
+      <Text style={[styles.inputLabel, styles.guestsLabel]}>Adult Guests:</Text>
+      <View style={styles.counterContainer}>
+        <TouchableOpacity onPress={handleDecrement} style={styles.counterButton}>
+          <Text style={styles.counterText}>-</Text>
+        </TouchableOpacity>
+        <Text style={styles.guestCount}>{adultGuests}</Text>
+        <TouchableOpacity onPress={handleIncrement}           style={[
+            styles.counterButton,
+            adultGuests === maxGuests && styles.disabledButton,
+          ]}
+          disabled={adultGuests === maxGuests}
+>
+          <Text style={styles.counterText}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+    <View style={styles.guestsContainer}>
+        <Text style={[styles.inputLabel, styles.guestsLabel]}>Children Guests:</Text>
+        <View style={styles.counterContainer}>
+          <TouchableOpacity
+            onPress={handleDecrementChild}
+            style={[
+              styles.counterButton,
+              childGuests === 0 && styles.disabledButton,
+            ]}
+            disabled={childGuests === 0}
+          >
+            <Text style={styles.counterText}>-</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.guestCount}>{childGuests}</Text>
+
+          <TouchableOpacity
+            onPress={handleIncrementChild}
+            style={[
+              styles.counterButton,
+              childGuests === maxGuests && styles.disabledButton,
+            ]}
+            disabled={childGuests === maxGuests}
+          >
+            <Text style={styles.counterText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
           </View>
         </View>
 
@@ -1453,6 +1506,30 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#ccc",
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  counterContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  counterButton: {
+    padding: 10,
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  counterText: {
+    fontSize: 10,
+    color: "white",
+  },
+  guestCount: {
+    fontSize: 14,
+    fontWeight: "medium",
   },
 });
 
